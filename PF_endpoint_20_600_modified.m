@@ -1,7 +1,7 @@
 %tmtool         used for instrument tool box
 
 %input the conditions here
-%text1~textn is the commands for the stage to move
+
 
 %repeat is the repeat time
 %commands
@@ -11,17 +11,17 @@ right = '@0V2400';
 Right = '@0V3000'; %from channel2->3
 left = '@0V-7800';
 %delays(i) is the delay time of command i (includes the moving time!)
-delays=2*ones(5);
+delays=3*ones(5);
 
-repeat = 2;
+repeat = 3;
 
 
 %open the com
-for skip=[]
+
 com = serial('com3');
 fopen(com);
 set(com,'terminator',{'CR/LF','CR/LF'});
-end
+
 %variables for storing caculated peaks
 
 
@@ -33,21 +33,21 @@ done = 0;
 %move camera
 for n = 1:repeat
     for i=1:4
-        MoveCom(down,delays(1))
+        MoveCom(com,down,delays(1))
     end
-    MoveCom(right,delays(3));
+    MoveCom(com,right,delays(3));
     for i=1:4
-        MoveCom(up,delays(2))
+        MoveCom(com,up,delays(2))
     end
-    MoveCom(Right,delays(4));
+    MoveCom(com,Right,delays(4));
     for i=1:4
-        MoveCom(down,delays(1))
+        MoveCom(com,down,delays(1))
     end
-    MoveCom(right,delays(3));
+    MoveCom(com,right,delays(3));
     for i=1:4
-        MoveCom(up,delays(2))
+        MoveCom(com,up,delays(2))
     end
-    MoveCom(left,delays(5));
+    MoveCom(com,left,delays(5));
     
     
     %show the cycle number done
@@ -64,6 +64,7 @@ delete(com);
 close;
 %saving data
 %prepare xls content
+peak=xlsread('temp_shift_data.xls');
 peak=num2cell(peak);
 title={'channe1','','','','','average','shift','STD','-offset','channe2','','','','','average','shift','STD','-offset','channe3','','','','','average','shift','STD','-offset','channe4','','','','','average','shift','STD','-offset'};
 whole=[title;peak];
@@ -84,8 +85,17 @@ function caculate_peaks()
     file_count=0;
     %global variables
     global peaks shift_data
-    peaks_had_caculated=sum(peaks~=0);
-    folder_list={'6 EDCNHS';'7 EDCNHS wash';'8 antibody 100 ug-ml';'9 antibody wash';'10 blocking';'11 blocking wash';'12 antigen secreted TNF';'13 antigen wash'};
+    peaks_had_caculated=sum(sum(peaks~=0,1));
+    if(length(shift_data)==0)
+        try
+            peaks=xlsread('temp_peaks_data.xls');
+            shift_data=xlsread('temp_shift_data.xls');
+            peaks_had_caculated=sum(sum(peaks~=0,1))
+           
+        end
+    end
+    
+    folder_list={'test3';};
     for j = 1:length(folder_list)
         file_path=[char(folder_list(j)) '/*.txt'];
         files = dir(file_path);
@@ -118,6 +128,7 @@ function caculate_peaks()
                 %grid on;
                 [y,position]=max(F(realroot));
                 peaks(ceil(i/20)+start_index,tentimes)=realroot(position);
+                xlswrite('temp_peaks_data.xls',peaks);
                 if mod(peaks_had_caculated,20)==0
                     
                     columns_add_to_store=4;
@@ -137,7 +148,7 @@ function caculate_peaks()
                             shift_data(ceil(peaks_had_caculated/20),9*channel)=shift_data(ceil(peaks_had_caculated/20),9*channel-2)-shift_data(2,9*channel-2); %-offset
                         end
                     end
-
+                    xlswrite('temp_shift_data.xls',shift_data);
                 end
                 clear realroot rootoffit ind toosmall toobig tentimes
             end
@@ -159,20 +170,16 @@ function caculate_peaks()
         hold on
         time_x=0:size(shift_data,1)-1;
         time_x=time_x*4;
-        errorbar(time_x,shift_data(3:end,9*i+9),shift_data(3:end,9*i+8),char(line_format(i+1)),'DisplayName',['channel' char(i+49)]);
+        errorbar(time_x,shift_data(:,9*i+9),shift_data(:,9*i+8),char(line_format(i+1)),'DisplayName',['channel' char(i+49)]);
     end
     %plot adjustment
     legend('Location','northwest','AutoUpdate', 'off');
     xlabel('time(min)');
     ylabel('peak shifts(nm)');
-    for i=1:size(steps,1)
-        if steps(i)~=""
-            xline(i*4-4);
-        end
-    end
+    
 end
-function MoveCom(command,delay)
-    %fprintf(com,command)
+function MoveCom(com,command,delay)
+    fprintf(com,command)
     tic
     caculate_peaks();
     pause(delay-toc);
