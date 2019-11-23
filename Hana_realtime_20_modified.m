@@ -13,7 +13,7 @@ for j = 1:length(folder_list)
     file_path=[char(folder_list(j)) '/*.txt'];
     file_struct = dir(file_path);
     for i = 1:length(file_struct)
-        %讀入檔案
+        
         [X Y] = textread([char(folder_list(j)) '/' file_struct(i).name], '%n %n', 'headerlines', 173);
 
        
@@ -28,9 +28,9 @@ for j = 1:length(folder_list)
         cd = polyder(c);
         rootoffit = roots(cd);
 
-        %找出最大值
+        
         ind = rootoffit == real(rootoffit);
-        realroot = rootoffit(ind(:,1),:);  %把虛數去除
+        realroot = rootoffit(ind(:,1),:);  
         toosmall = find(500>realroot); 
         realroot(toosmall)=[];
         toobig = find(700<realroot); 
@@ -46,36 +46,17 @@ for j = 1:length(folder_list)
         clear realroot rootoffit ind toosmall toobig tentimes 
     end
     steps=[steps;strings(length(file_struct)/20,1)];
-    steps(start_index+1,1)=folder_list(j);
+    if length(file_struct>0)
+        steps(start_index+1,1)=folder_list(j);
+    end
     hold on
     start_index=start_index+length(file_struct)/20;
 end
 add_column=4;
-peak=[peak(:,1:5) zeros(size(peak,1),add_column) peak(:,6:10) zeros(size(peak,1),add_column) peak(:,11:15) zeros(size(peak,1),add_column) peak(:,16:20) zeros(size(peak,1),add_column)];%每個channel後面加三column
+peak=[peak(:,1:5) zeros(size(peak,1),add_column) peak(:,6:10) zeros(size(peak,1),add_column) peak(:,11:15) zeros(size(peak,1),add_column) peak(:,16:20) zeros(size(peak,1),add_column)];%嚙瘠嚙踝蕭channel嚙賦面嚙稼嚙確column
 first={'channe1','','','','','average','shift','STD','-offset','channe2','','','','','average','shift','STD','-offset','channe3','','','','','average','shift','STD','-offset','channe4','','','','','average','shift','STD','-offset'};
 line_format={'b-','g-','r-','k-'};
-%draw retangles
-WashingSection=[2,4,6,8];
-section_count=0;
-last_section_x=0;
-axis off;
-for i=1:size(steps,1)
-    min_y=-1;
-    max_y=5;
-    retangle_color=[153/255,204/255,255/255];
-    if steps(i)~=""
-        section_count=section_count+1;
-        if find(section_count-1==WashingSection)
-            rectangle('Position',[last_section_x+2,min_y+0.1,i*4-4-last_section_x-4,max_y-min_y],'EdgeColor', retangle_color, 'FaceColor', retangle_color, 'LineWidth', 5);
-        end
-        last_section_x=i*4-4;
-    end
-    if i==size(steps,1)
-        if find(section_count==WashingSection)
-            rectangle('Position',[last_section_x+2,min_y+0.1,i*4-4-last_section_x-4,max_y-min_y],'EdgeColor', retangle_color, 'FaceColor', retangle_color, 'LineWidth', 5);
-        end
-    end
-end
+
 axis on;
 for i=0:3
     peak(:,9*i+6)=sum(peak(:,(i*9+1):(i*9+5)),2)/5; %average
@@ -95,11 +76,26 @@ end
 legend('Location','northwest','AutoUpdate', 'off');
 xlabel('time(min)');
 ylabel('peak shifts(nm)');
-for i=1:size(steps,1)
-    if steps(i)~=""
-        xline(i*4-4);
+%draw retangles
+WashingSection=[2,4,6,8];
+section_count=0;
+last_section_x=1;
+for i=2:size(steps,1)-1
+        if steps(i+1)~=""
+            y_axis=ylim;
+            plot([i*4-4 i*4-4],[y_axis(1) y_axis(2)],'-k');
+            section_count=section_count+1;
+            if find(section_count-1==WashingSection)
+                rectangle('Position',[last_section_x,y_axis(1),i*4-4-last_section_x,y_axis(2)-y_axis(1)],'EdgeColor', retangle_color, 'FaceColor', retangle_color, 'LineWidth', 1);
+            end
+            last_section_x=i*4-4;
+        end
+        if i+1==size(steps,1)
+            if find(section_count==WashingSection)
+                rectangle('Position',[last_section_x,y_axis(1),i*4-4-last_section_x,y_axis(2)-y_axis(1)],'EdgeColor', retangle_color, 'FaceColor', retangle_color, 'LineWidth', 1);
+            end
+        end
     end
-end
 %prepare xls content
 peak=num2cell(peak);
 whole=[first;peak];

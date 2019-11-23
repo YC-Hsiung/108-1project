@@ -1,4 +1,3 @@
-%tmtool         used for instrument tool box
 
 %input the conditions here
 
@@ -10,20 +9,17 @@ up = '@0U550';
 right = '@0V2400';
 Right = '@0V3000'; %from channel2->3
 left = '@0V-7800';
-%delays(i) is the delay time of command i (includes the moving time!)
-delays=3*ones(5);
+%delays(i) is the delay time of command i
+delays=12*ones(5);
 
 repeat = 3;
 
-
 %open the com
-
 com = serial('com3');
 fopen(com);
 set(com,'terminator',{'CR/LF','CR/LF'});
-
 %variables for storing caculated peaks
-
+com=[]
 
 %this for loop controls the moving of the stage
 %fprintf tells the stage to move
@@ -50,7 +46,7 @@ for n = 1:repeat
     MoveCom(com,left,delays(5));
     
     
-    %show the cycle number done
+    %show the number of cycles have done
     done = done +1;
     disp(done);
 end
@@ -64,15 +60,6 @@ delete(com);
 close;
 %saving data
 %prepare xls content
-peak=xlsread('temp_shift_data.xls');
-peak=num2cell(peak);
-title={'channe1','','','','','average','shift','STD','-offset','channe2','','','','','average','shift','STD','-offset','channe3','','','','','average','shift','STD','-offset','channe4','','','','','average','shift','STD','-offset'};
-whole=[title;peak];
-steps=['';steps];
-whole=[steps whole];
-%adjust some text
-whole(2,[8,10,17,19,26,28,35,37])=strings(1,8);
-xlswrite('result',whole);
 saveas(gcf,'result.jpg','jpg');
 hold off;
 close(gcf);
@@ -95,7 +82,7 @@ function caculate_peaks()
         end
     end
     
-    folder_list={'test3';};
+    folder_list={'1 EDCNHS';'2 EDCNHS wash';'3 antibody';'4 antibody wash';'5 blocking';'6 blocking wash';'7 antigen';'8 antigen wash'};
     for j = 1:length(folder_list)
         file_path=[char(folder_list(j)) '/*.txt'];
         files = dir(file_path);
@@ -113,9 +100,9 @@ function caculate_peaks()
                 c = coeffvalues(F);
                 cd = polyder(c);
                 rootoffit = roots(cd);
-                %§ä¥X³Ì¤j­È
+                %ï¿½ï¿½Xï¿½Ì¤jï¿½ï¿½
                 ind = rootoffit == real(rootoffit);
-                realroot = rootoffit(ind(:,1),:);  %§âµê¼Æ¥h°£
+                realroot = rootoffit(ind(:,1),:);  %ï¿½ï¿½ï¿½Æ¥hï¿½ï¿½
                 toosmall = find(500>realroot); 
                 realroot(toosmall)=[];
                 toobig = find(700<realroot); 
@@ -142,8 +129,9 @@ function caculate_peaks()
                         shift_data(ceil(peaks_had_caculated/20),9*channel-3)=sum(shift_data(ceil(peaks_had_caculated/20),(channel*9-8):(channel*9-4)),2)/5; %average
                         if ceil(peaks_had_caculated/20)>1
                             shift_data(ceil(peaks_had_caculated/20),9*channel-2)=shift_data(ceil(peaks_had_caculated/20),(channel*9-3))-shift_data(1,(channel*9-3)); %shift
+                            shift_data(ceil(peaks_had_caculated/20),9*channel-1)=std(shift_data(ceil(peaks_had_caculated/20),(channel*9-8):(channel*9-4))-shift_data(1,(channel*9-8):(channel*9-4)),0,2); %STD
                         end
-                        shift_data(ceil(peaks_had_caculated/20),9*channel-1)=std(shift_data(ceil(peaks_had_caculated/20),(channel*9-8):(channel*9-4)),0,2); %STD
+           
                         if ceil(peaks_had_caculated/20)>2
                             shift_data(ceil(peaks_had_caculated/20),9*channel)=shift_data(ceil(peaks_had_caculated/20),9*channel-2)-shift_data(2,9*channel-2); %-offset
                         end
@@ -164,19 +152,45 @@ function caculate_peaks()
     if length(shift_data)==0 | mod(peaks_had_caculated,20)~=0
         return
     end
+    
+    
     line_format={'b-','g-','r-','k-'};
     for i=0:3
         %plot
         hold on
-        time_x=0:size(shift_data,1)-1;
+        time_x=0:size(shift_data,1)-2;
         time_x=time_x*4;
-        errorbar(time_x,shift_data(:,9*i+9),shift_data(:,9*i+8),char(line_format(i+1)),'DisplayName',['channel' char(i+49)]);
+        errorbar(time_x,shift_data(2:end,9*i+9),shift_data(2:end,9*i+8),char(line_format(i+1)),'DisplayName',['channel' char(i+49)]);
     end
+    
     %plot adjustment
     legend('Location','northwest','AutoUpdate', 'off');
     xlabel('time(min)');
     ylabel('peak shifts(nm)');
-    
+    %draw retangles
+    WashingSection=[2,4,6,8];
+    retangle_color=[153/255,204/255,255/255];
+    section_count=1;
+    last_section_x=0;
+    for i=2:size(steps,1)-1
+        if steps(i+1)~=""
+            y_axis=ylim;
+            plot([i*4-4 i*4-4],[y_axis(1) y_axis(2)],'-k');
+            section_count=section_count+1;
+            if find(section_count-1==WashingSection)
+                rectangle('Position',[last_section_x,y_axis(1),i*4-4-last_section_x,y_axis(2)-y_axis(1)],'EdgeColor', retangle_color, 'FaceColor', retangle_color, 'LineWidth', 1);
+            end
+            last_section_x=i*4-4;
+        end
+        if i+1==size(steps,1)
+            if find(section_count==WashingSection)
+                rectangle('Position',[last_section_x,y_axis(1),i*4-4-last_section_x,y_axis(2)-y_axis(1)],'EdgeColor', retangle_color, 'FaceColor', retangle_color, 'LineWidth', 1);
+            end
+        end
+    end
+    h=get(gca,'Children');
+    h=flipud(h);
+    set(gca, 'Children', h);
 end
 function MoveCom(com,command,delay)
     fprintf(com,command)
