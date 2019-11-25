@@ -1,4 +1,4 @@
-% Date:        2016/10/21
+﻿% Date:        2016/10/21
 % Purpose:     fitting curve and finding peak and output array
 % Vers:        
 %%%
@@ -46,7 +46,7 @@ for j = 1:length(folder_list)
         clear realroot rootoffit ind toosmall toobig tentimes 
     end
     steps=[steps;strings(length(file_struct)/20,1)];
-    if length(file_struct>0)
+    if length(file_struct)>0
         steps(start_index+1,1)=folder_list(j);
     end
     hold on
@@ -57,7 +57,6 @@ peak=[peak(:,1:5) zeros(size(peak,1),add_column) peak(:,6:10) zeros(size(peak,1)
 first={'channe1','','','','','average','shift','STD','-offset','channe2','','','','','average','shift','STD','-offset','channe3','','','','','average','shift','STD','-offset','channe4','','','','','average','shift','STD','-offset'};
 line_format={'b-','g-','r-','k-'};
 
-axis on;
 for i=0:3
     peak(:,9*i+6)=sum(peak(:,(i*9+1):(i*9+5)),2)/5; %average
     peak(2:end,9*i+7)=peak(2:end,(i*9+6))-peak(1,(i*9+6)); %shift
@@ -78,9 +77,10 @@ xlabel('time(min)');
 ylabel('peak shifts(nm)');
 %draw retangles
 WashingSection=[2,4,6,8];
-section_count=0;
+section_count=1;
 last_section_x=1;
-for i=2:size(steps,1)-1
+retangle_color=[153/255,204/255,255/255];
+for i=1:size(steps,1)-1
         if steps(i+1)~=""
             y_axis=ylim;
             plot([i*4-4 i*4-4],[y_axis(1) y_axis(2)],'-k');
@@ -95,7 +95,10 @@ for i=2:size(steps,1)-1
                 rectangle('Position',[last_section_x,y_axis(1),i*4-4-last_section_x,y_axis(2)-y_axis(1)],'EdgeColor', retangle_color, 'FaceColor', retangle_color, 'LineWidth', 1);
             end
         end
-    end
+end
+h=get(gca,'Children');
+h=flipud(h);
+set(gca, 'Children', h);
 %prepare xls content
 peak=num2cell(peak);
 whole=[first;peak];
