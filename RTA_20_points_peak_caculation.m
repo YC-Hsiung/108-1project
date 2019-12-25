@@ -1,4 +1,4 @@
-﻿% Date:        2016/10/21
+% Date:        2016/10/21
 % Purpose:     fitting curve and finding peak and output array
 % Vers:        
 %%%
@@ -7,8 +7,8 @@
 clear;
 
 folder_list={'1 EDCNHS';'2 EDCNHS wash';'3 antibody';'4 antibody wash';'5 blocking';'6 blocking wash';'7 antigen';'8 antigen wash'};
-start_index=0
-steps=[]
+start_index=0;
+steps=[];
 for j = 1:length(folder_list)
     file_path=[char(folder_list(j)) '/*.txt'];
     file_struct = dir(file_path);
@@ -55,13 +55,13 @@ end
 add_column=4;
 peak=[peak(:,1:5) zeros(size(peak,1),add_column) peak(:,6:10) zeros(size(peak,1),add_column) peak(:,11:15) zeros(size(peak,1),add_column) peak(:,16:20) zeros(size(peak,1),add_column)];%�C��channel�᭱�[�Tcolumn
 first={'channe1','','','','','average','shift','STD','-offset','channe2','','','','','average','shift','STD','-offset','channe3','','','','','average','shift','STD','-offset','channe4','','','','','average','shift','STD','-offset'};
-line_format={'b-','g-','r-','k-'};
-
+line_format={'r-','g-','b-','k-'};
+column_per_channel=9;
 for i=0:3
-    peak(:,9*i+6)=sum(peak(:,(i*9+1):(i*9+5)),2)/5; %average
-    peak(2:end,9*i+7)=peak(2:end,(i*9+6))-peak(1,(i*9+6)); %shift
-    peak(2:end,9*i+8)=std(peak(2:end,(i*9+1):(i*9+5))-peak(1,(i*9+1):(i*9+5)) , 0,2); %STD
-    peak(:,9*i+9)=peak(:,9*i+7)-peak(2,9*i+7); %-offset
+    peak(:,column_per_channel*i+6)=sum(peak(:,(i*column_per_channel+1):(i*column_per_channel+5)),2)/5; %average
+    peak(2:end,column_per_channel*i+7)=peak(2:end,(i*column_per_channel+6))-peak(1,(i*column_per_channel+6)); %shift
+    peak(2:end,column_per_channel*i+8)=std(peak(2:end,(i*column_per_channel+1):(i*column_per_channel+5))-peak(1,(i*column_per_channel+1):(i*column_per_channel+5)) , 0,2); %STD
+    peak(:,column_per_channel*i+9)=peak(:,column_per_channel*i+7)-peak(2,column_per_channel*i+7); %-offset
     %plot
     time_x=0:size(peak,1)-2;
     time_x=time_x*4;
@@ -108,6 +108,7 @@ whole=[steps whole];
 whole(2,[8,10,17,19,26,28,35,37])=strings(1,8);
 %output
 xlswrite('result',whole);
+axis([0 inf 0 4]);
 saveas(gcf,'result.jpg','jpg');
 hold off;
 close(gcf);
